@@ -1,38 +1,56 @@
-from resume_loader import load_resume
-from chunking import chunk_text
-from embeddings import get_embedder
+from portfolio_loader import load_portfolio
+from chunking import chunk_documents
+from embeddings import get_embedder, embed_chunks
 from retriever import build_faiss_index, retrieve
 from llm import get_llm
 
 def main():
-    print("\n=== ResumeRAG (Command Line Version) ===\n")
+    print("\n=== PortfolioRAG (Command Line Version) ===\n")
 
-    # Load models
     embedder = get_embedder()
     llm = get_llm()
 
-    # Load and prepare resume
-    print("Loading resume...")
-    resume_text = load_resume()
-    chunks = chunk_text(resume_text, 50)
-    embeddings = embedder.encode(chunks)
+    print("Loading portfolio...")
+    documents = load_portfolio()
+    print(f"Loaded {len(documents)} documents:")
+    for doc in documents:
+        print(f" - {doc['filename']} ({doc['type']})")
+
+    chunks = chunk_documents(documents)
+    print(f"Created {len(chunks)} chunks.")
+
+    embeddings = embed_chunks(embedder, chunks)
     index = build_faiss_index(embeddings)
 
-    print("Ready! Ask a question about your resume.\n")
-    
-    while True:
-        query = input("Your question (or type 'exit'): ")
+    print("\nReady! Ask a question about your portfolio.")
+    print("Type 'exit' to quit.\n")
 
-        if query.lower() in ["exit", "quit"]:
+    while True:
+        query = input("Your question: ")
+
+        if query.lower().strip() in ["exit", "quit"]:
             print("Goodbye!")
             break
 
-        retrieved_chunks = retrieve(query, embedder, chunks, index)
-        context = "\n\n".join(retrieved_chunks)
+        if len(query.split()) < 3:
+            print("Please ask a slightly more specific question.\n")
+            continue
+
+        results = retrieve(query, embedder, chunks, index,2)
+
+        print("\n--- Retrieved Chunks ---")
+        for r in results:
+            print(f"[{r['source']} | chunk {r['chunk_id']} | score {r['score']:.4f}]")
+            print(r["text"])
+            print("---")
+
+        context = "\n\n".join([r["text"] for r in results])
 
         prompt = (
-            f"You are a helpful assistant answering questions about a resume.\n\n"
-            f"Context from your resume and portfolio:\n{context}\n\n"
+            f"You are a helpful assistant answering questions about a resume and portfolio.\n"
+            f"Use the context to answer the question. Do not make up information.  If you cannot answer from the context, say so.\n\n"
+            f"Keep your answer short to under 20 words.\n\n"
+            f"Context from resume and portfolio:\n{context}\n\n"
             f"Question: {query}\n"
             f"Answer:"
         )
@@ -40,7 +58,7 @@ def main():
         response = llm(prompt)[0]["generated_text"]
         print("\n--- Answer ---")
         print(response)
-        print("\n")
+        print()
 
 if __name__ == "__main__":
     main()
