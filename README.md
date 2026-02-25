@@ -1,138 +1,101 @@
-# ResumeRAG – A Retrieval‑Augmented Career Assistant
+# PortfolioRAG – A Retrieval‑Augmented Career Knowledge Base
 
-ResumeRAG is a personal Retrieval‑Augmented Generation (RAG) system designed to help job seekers understand, query, and tailor their experience for specific roles. It combines local embeddings, vector search, and an LLM to create a smart assistant that can:
+PortfolioRAG is a personal Retrieval‑Augmented Generation (RAG) system that transforms your entire career portfolio into a searchable knowledge base. Instead of relying on a single resume, the system ingests **all PDFs, text files, and Markdown documents** in a designated folder and makes them queryable through both a Streamlit UI and a command‑line interface.
 
-- Answer questions about your resume (“Ask My Resume”)
-- Analyze a job description
-- Retrieve your most relevant experience
-- Generate tailored resume bullet points
-- Provide a gap analysis between your background and the job requirements
+This allows you to ask questions across your entire professional history, including:
+- Your resume
+- Project write‑ups
+- Leadership stories
+- Technical deep dives
+- Case studies
+- Any other documents you include in your portfolio
 
-This project is built entirely with free, local tools — no paid APIs required.
+The result is a powerful, private, local system that can answer questions about your experience and help tailor your background to job descriptions.
 
 ---
 
 ## 🚀 Features
 
-### **1. Ask My Resume**
-Query your resume like a knowledge base:
-- “What cloud technologies have I used”
-- “Summarize my leadership experience”
-- “Which projects demonstrate data engineering skills”
+### **1. Portfolio‑Wide Ingestion**
+The system automatically loads every `.pdf`, `.txt`, and `.md` file in the `data/portfolio/` folder.  
+No subfolders are scanned, keeping the ingestion logic simple and predictable.
 
-### **2. Job Description Tailoring**
-Paste a job description and the system will:
-- Retrieve the most relevant parts of your resume
-- Generate customized resume bullets
-- Explain why each bullet was selected
-- Identify gaps between your experience and the job requirements
+Each document is stored with metadata:
+- `filename`
+- `type` (pdf, txt, md)
+- `path`
+- `text`
 
-### **3. Local, Free, and Private**
-- Uses **sentence-transformers** for embeddings  
-- Uses **FAISS** for vector search  
-- Uses a **local or free LLM** (e.g., Mistral, Llama 3 via HuggingFace or Ollama)  
-- No external services needed  
+### **2. Chunk‑Level Retrieval**
+Each document is split into manageable chunks (default: 300 words).  
+Each chunk is stored with metadata:
+- `text`
+- `source` (filename)
+- `chunk_id`
+
+This enables precise retrieval and transparent source attribution.
+
+### **3. Vector Search with FAISS**
+All chunks are embedded using `sentence-transformers/all-MiniLM-L6-v2` and indexed using FAISS for fast similarity search.
+
+### **4. Local or Free LLM Generation**
+The system uses a lightweight, CPU‑friendly model (`Phi-3-mini-4k-instruct`) to generate answers based on retrieved context.
+
+### **5. Two Interfaces**
+- **Streamlit UI** (`app.py`)  
+  A clean, interactive interface for exploring your portfolio.
+- **Command‑Line Interface** (`cli_app.py`)  
+  Ideal for debugging or quick queries.
 
 ---
 
 ## 🧱 Project Structure
 
-ResumeRAG/
+PortfolioBot/
 │
 ├── src/
-│   ├── init.py
 │   ├── app.py               # Streamlit UI
-│   ├── resume_loader.py     # PDF extraction
-│   ├── chunking.py          # Text chunking logic
-│   ├── embeddings.py        # Embedding model loader
-│   ├── retriever.py         # FAISS index + retrieval
-│   ├── llm.py               # Local/Free LLM interface
-│   └── job_tailor.py        # Job description analysis + bullet generation
+│   ├── cli_app.py           # Command-line interface
+│   ├── portfolio_loader.py  # Loads all PDFs/TXTs/MDs in data/portfolio
+│   ├── chunking.py          # Splits documents into chunks with metadata
+│   ├── embeddings.py        # Embedding model + chunk embedding
+│   ├── retriever.py         # FAISS index + retrieval with scores
+│   ├── llm.py               # Local LLM interface (Phi-3 Mini)
+│   └── job_tailor.py        # (future) Job description tailoring
 │
 ├── data/
-│   └── resume.pdf           # Your resume (not committed by default)
-│
-├── notebooks/
-│   └── experiments.ipynb    # Optional experimentation
-│
-├── tests/
-│   └── test_retriever.py    # Example unit tests
+│   └── portfolio/           # All your documents go here
+│       ├── resume.pdf
+│       ├── project1.pdf
+│       ├── leadership_story.txt
+│       └── ...
 │
 ├── requirements.txt
-├── .gitignore
 └── README.md
 
 
-
+---
 
 ## 🛠️ Installation
 
-### 1. Clone the repository
+### **1. Clone the repository**
 ```bash
 git clone https://github.com/<your-username>/ResumeRAG.git
 cd ResumeRAG
 ```
 
-### 2. Create a virtual environment
-python -m venv venv
+### **2. Create a virtual environment
+```python -m venv venv
 venv\Scripts\activate   # Windows
+```
 
-### 3. Install dependencies
+### **3. Install dependencies
 pip install -r requirements.txt
 
-### 4. Add your resume
-### Place your PDF here:
-data/resume.pdf
+### **4. Add your portfolio documents
+Place all .pdf, .txt, and .md files into: data/
 
-### Running the App
-### Launch the Streamlit interface:
-streamlit run src/app.py
+### **5. Running the App
+Command-Line Interface:
+python src/cli_app.py
 
-
-
-## How It Works
-1. Resume Ingestion
-Your resume PDF is parsed into raw text and split into semantic chunks.
-
-2. Embedding + Vector Store
-Each chunk is embedded using all-MiniLM-L6-v2
-
-Stored in a FAISS index for fast similarity search
-
-3. Retrieval
-Queries or job descriptions are embedded and matched against your resume chunks.
-
-4. LLM Generation
-A local or free LLM generates:
-* Answers to resume questions
-* Tailored resume bullets
-* Gap analysis
-* Explanation of retrieved evidence
-
-### Example Queries
-Ask My Resume
-“What programming languages do I have experience with”
-
-“Summarize my cloud background”
-
-“Which projects show leadership”
-
-### Tailor to a Job Description
-Paste a job description and ask:
-
-“Generate tailored resume bullets”
-
-“What experience matches this role”
-
-“What skills am I missing”
-
-## 📜 License
-MIT License — feel free to use, modify, and build on this project.
-
-## 🙌 Acknowledgments
-Built using:
-SentenceTransformers
-FAISS
-Streamlit
-HuggingFace Transformers
-Copilot
