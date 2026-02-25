@@ -31,8 +31,8 @@ def main():
         context = "\n\n".join(retrieved_chunks)
 
         prompt = (
-            f"Use the context to answer the question.\n\n"
-            f"Context:\n{context}\n\n"
+            f"You are a helpful assistant answering questions about a resume.\n\n"
+            f"Context from your resume and portfolio:\n{context}\n\n"
             f"Question: {query}\n"
             f"Answer:"
         )
