@@ -71,6 +71,7 @@ ResumeRAG/
 ```bash
 git clone https://github.com/<your-username>/ResumeRAG.git
 cd ResumeRAG
+```
 
 ### 2. Create a virtual environment
 python -m venv venv
@@ -86,3 +87,52 @@ data/resume.pdf
 ### Running the App
 ### Launch the Streamlit interface:
 streamlit run src/app.py
+
+
+
+## How It Works
+1. Resume Ingestion
+Your resume PDF is parsed into raw text and split into semantic chunks.
+
+2. Embedding + Vector Store
+Each chunk is embedded using all-MiniLM-L6-v2
+
+Stored in a FAISS index for fast similarity search
+
+3. Retrieval
+Queries or job descriptions are embedded and matched against your resume chunks.
+
+4. LLM Generation
+A local or free LLM generates:
+* Answers to resume questions
+* Tailored resume bullets
+* Gap analysis
+* Explanation of retrieved evidence
+
+### Example Queries
+Ask My Resume
+“What programming languages do I have experience with”
+
+“Summarize my cloud background”
+
+“Which projects show leadership”
+
+### Tailor to a Job Description
+Paste a job description and ask:
+
+“Generate tailored resume bullets”
+
+“What experience matches this role”
+
+“What skills am I missing”
+
+## 📜 License
+MIT License — feel free to use, modify, and build on this project.
+
+## 🙌 Acknowledgments
+Built using:
+SentenceTransformers
+FAISS
+Streamlit
+HuggingFace Transformers
+Copilot
