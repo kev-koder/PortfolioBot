@@ -1,32 +1,47 @@
 import streamlit as st
-from resume_loader import load_resume
-from chunking import chunk_text
-from embeddings import get_embedder
+from portfolio_loader import load_portfolio
+from chunking import chunk_documents
+from embeddings import get_embedder, embed_chunks
 from retriever import build_faiss_index, retrieve
 from llm import get_llm
 
-# Load models
-embedder = get_embedder()
-llm = get_llm()
+@st.cache_resource
+def load_models():
+    return get_embedder(), get_llm()
 
-# Load and prepare resume
-resume_text = load_resume()
-chunks = chunk_text(resume_text)
-embeddings = embedder.encode(chunks)
-index = build_faiss_index(embeddings)
+@st.cache_resource
+def load_index(_embedder):
+    documents = load_portfolio()
+    chunks = chunk_documents(documents)
+    embeddings = embed_chunks(_embedder, chunks)
+    index = build_faiss_index(embeddings)
+    return documents, chunks, index
 
 # Streamlit UI
-st.title("ResumeRAG – Ask My Resume")
+st.title("PortfolioRAG – Ask My Portfolio")
 
-query = st.text_input("Ask something about your experience")
+embedder, llm = load_models()
+documents, chunks, index = load_index(embedder)
+
+st.caption(f"Loaded {len(documents)} documents: {', '.join(d['filename'] for d in documents)}")
+
+query = st.text_input("Ask a question about your experience")
 
 if query:
-    retrieved_chunks = retrieve(query, embedder, chunks, index)
-    context = "\n\n".join(retrieved_chunks)
+    results = retrieve(query, embedder, chunks, index, k=2)
+
+    with st.expander("Retrieved chunks"):
+        for r in results:
+            st.markdown(f"**[{r['source']} | chunk {r['chunk_id']} | score {r['score']:.4f}]**")
+            st.write(r["text"])
+
+    context = "\n\n".join([r["text"] for r in results])
 
     prompt = (
-        f"Use the context to answer the question.\n\n"
-        f"Context:\n{context}\n\n"
+        f"You are a helpful assistant answering questions about a resume and portfolio.\n"
+        f"Use the context to answer the question. Do not make up information. If you cannot answer from the context, say so.\n\n"
+        f"Keep your answer short to under 20 words.\n\n"
+        f"Context from resume and portfolio:\n{context}\n\n"
         f"Question: {query}\n"
         f"Answer:"
     )
